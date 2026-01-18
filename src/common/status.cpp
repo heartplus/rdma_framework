@@ -1,0 +1,4 @@
+#include "rdma/common/status.h"
+
+// Status implementation is mostly inline in the header
+// This file exists for potential future extensions

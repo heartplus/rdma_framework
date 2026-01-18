@@ -1,0 +1,191 @@
+ 计划文件已创建完成。这个设计方案包含：
+
+  核心内容：
+  - 清晰的项目目录结构
+  - 面向对象的类设计（Device、PD、MR、CQ、QP、Connection）
+  - 5个实现阶段的详细步骤
+  - 关键设计决策说明
+  - 验证和测试策略
+
+  特点：
+  - RAII资源管理，防止泄漏
+  - Polling模式，低延迟高性能
+  - 预留SPDK/brpc集成接口
+  - 区分Send/Recv（双边）和Write/Read（单边）使用场景
+
+● User approved Claude's plan
+  ⎿  Plan saved to: ~/.claude/plans/elegant-nibbling-rabbit.md · /plan to edit
+     RDMA Framework 设计与实现计划
+
+     项目概述
+
+     基于用户需求设计的高性能RDMA RPC框架：
+     - 使用场景: 高性能存储（后续与SPDK集成）
+     - 传输模式: RC (Reliable Connection)
+     - 网络类型: RoCE v2
+     - API风格: C++面向对象，RAII资源管理
+     - 完成通知: Polling模式（非中断）
+
+     1. 项目目录结构
+
+     rdma_framework/
+     ├── CMakeLists.txt
+     ├── cmake/
+     │   ├── FindIBVerbs.cmake
+     │   └── FindRDMACM.cmake
+     ├── include/rdma/
+     │   ├── rdma.h                    # 统一头文件入口
+     │   ├── common/
+     │   │   ├── types.h               # 基础类型
+     │   │   ├── status.h              # 错误处理
+     │   │   └── logging.h             # 日志
+     │   ├── core/
+     │   │   ├── device.h              # RDMA设备
+     │   │   ├── protection_domain.h   # 保护域
+     │   │   ├── memory_region.h       # 内存区域
+     │   │   ├── completion_queue.h    # 完成队列
+     │   │   └── queue_pair.h          # 队列对
+     │   ├── transport/
+     │   │   ├── connection.h          # 连接抽象
+     │   │   └── connection_manager.h  # 连接管理
+     │   ├── buffer/
+     │   │   └── buffer_pool.h         # 缓冲区池
+     │   └── integration/
+     │       ├── spdk_adapter.h        # SPDK适配器接口
+     │       └── brpc_transport.h      # brpc传输接口
+     ├── src/                          # 对应实现文件
+     ├── examples/
+     │   ├── simple_send_recv/         # Send/Recv示例
+     │   ├── rdma_write/               # RDMA Write示例
+     │   └── benchmark/                # 性能测试
+     └── tests/                        # 单元测试
+
+     2. 核心类设计
+
+     类关系
+
+     RdmaDevice → ProtectionDomain → MemoryRegion
+                                  → CompletionQueue
+                                  → QueuePair → Connection → ConnectionManager
+
+     关键类说明
+     ┌───────────────────┬──────────────────────────────────────┐
+     │       类名        │                 职责                 │
+     ├───────────────────┼──────────────────────────────────────┤
+     │ Status/Result<T>  │ 错误处理，类似absl::Status           │
+     ├───────────────────┼──────────────────────────────────────┤
+     │ RdmaDevice        │ 封装ibv_context，设备发现与属性查询  │
+     ├───────────────────┼──────────────────────────────────────┤
+     │ ProtectionDomain  │ 封装ibv_pd，资源隔离                 │
+     ├───────────────────┼──────────────────────────────────────┤
+     │ MemoryRegion      │ 封装ibv_mr，内存注册/分配            │
+     ├───────────────────┼──────────────────────────────────────┤
+     │ CompletionQueue   │ 封装ibv_cq，Polling完成              │
+     ├───────────────────┼──────────────────────────────────────┤
+     │ QueuePair         │ 封装ibv_qp，Send/Recv/Write/Read操作 │
+     ├───────────────────┼──────────────────────────────────────┤
+     │ Connection        │ 高层连接抽象，封装QP和状态管理       │
+     ├───────────────────┼──────────────────────────────────────┤
+     │ ConnectionManager │ TCP交换QP信息，管理多连接            │
+     ├───────────────────┼──────────────────────────────────────┤
+     │ BufferPool        │ 预注册缓冲区池，减少MR注册开销       │
+     └───────────────────┴──────────────────────────────────────┘
+     QueuePair核心接口
+
+     // Send/Recv（双边操作）
+     Status PostSend(const MemoryRegion* mr, size_t offset, size_t length, uint64_t wr_id);
+     Status PostRecv(const MemoryRegion* mr, size_t offset, size_t length, uint64_t wr_id);
+
+     // RDMA Write/Read（单边操作，存储场景核心）
+     Status PostWrite(const MemoryRegion* local_mr, size_t local_offset, size_t length,
+                      const RemoteMemoryInfo& remote, uint64_t wr_id);
+     Status PostRead(const MemoryRegion* local_mr, size_t local_offset, size_t length,
+                     const RemoteMemoryInfo& remote, uint64_t wr_id);
+
+     3. 实现步骤
+
+     阶段一：基础设施
+
+     - 创建目录结构和CMake配置
+     - 实现Status/Result错误处理
+     - 实现RdmaDevice设备发现
+     - 实现ProtectionDomain
+     - 基础日志系统
+
+     阶段二：核心RDMA组件
+
+     - 实现MemoryRegion（注册/分配）
+     - 实现CompletionQueue（Polling）
+     - 实现QueuePair
+       - 状态转换（RESET→INIT→RTR→RTS）
+       - Send/Recv操作
+       - RDMA Write/Read操作
+     - 实现BufferPool
+
+     阶段三：连接管理
+
+     - 实现Connection类
+     - 实现ConnectionManager
+       - TCP交换QP信息
+       - 连接建立/断开
+     - 编写示例程序
+
+     阶段四：性能优化
+
+     - 批量Post操作
+     - 内联发送优化
+     - Lock-free BufferPool
+     - 性能测试基准
+
+     阶段五：集成接口
+
+     - SPDK适配器接口（内存分配器、IO接口）
+     - brpc传输层接口（管理路径）
+
+     4. 关键设计决策
+     ┌──────────┬───────────────┬────────────────────┐
+     │   决策   │     选择      │        理由        │
+     ├──────────┼───────────────┼────────────────────┤
+     │ 传输模式 │ RC            │ 存储场景需要可靠性 │
+     ├──────────┼───────────────┼────────────────────┤
+     │ 完成通知 │ Polling       │ 低延迟，与SPDK兼容 │
+     ├──────────┼───────────────┼────────────────────┤
+     │ 资源管理 │ RAII          │ 防止资源泄漏       │
+     ├──────────┼───────────────┼────────────────────┤
+     │ 错误处理 │ Status/Result │ 显式处理，不用异常 │
+     ├──────────┼───────────────┼────────────────────┤
+     │ 线程模型 │ 单线程CQ      │ 简化设计，避免锁   │
+     └──────────┴───────────────┴────────────────────┘
+     5. 验证方法
+
+     1. 单元测试: Google Test框架
+       - 设备发现测试
+       - MR注册/分配测试
+       - QP状态转换测试
+     2. 集成测试:
+       - 本地SoftRoCE功能测试
+       - Send/Recv双向通信
+       - RDMA Write数据传输
+     3. 性能测试:
+       - 延迟测试（P50/P99/P999）
+       - 吞吐量测试（带宽/IOPS）
+
+     6. 依赖要求
+
+     - Linux内核 >= 4.15
+     - rdma-core >= 25
+     - libibverbs, librdmacm
+     - CMake >= 3.14
+     - C++17
+
+     关键文件清单
+
+     实现优先级从高到低：
+
+     1. CMakeLists.txt - 构建配置
+     2. include/rdma/common/status.h - 错误处理基础
+     3. include/rdma/core/device.h - 设备抽象
+     4. include/rdma/core/memory_region.h - 内存管理
+     5. include/rdma/core/queue_pair.h - 核心传输
+     6. include/rdma/core/completion_queue.h - 完成处理
+     7. include/rdma/transport/connection_manager.h - 连接管理
