@@ -7,10 +7,10 @@
 namespace rdma {
 
 enum class LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARN = 2,
-    ERROR = 3,
+    kDebug = 0,
+    kInfo = 1,
+    kWarn = 2,
+    kError = 3,
 };
 
 class Logger {
@@ -20,7 +20,7 @@ public:
 
     static void Debug(const char* file, int line, const char* fmt, ...) {
 #ifdef RDMA_ENABLE_LOGGING
-        if (level_ <= LogLevel::DEBUG) {
+        if (level_ <= LogLevel::kDebug) {
             va_list args;
             va_start(args, fmt);
             Log("DEBUG", file, line, fmt, args);
@@ -35,7 +35,7 @@ public:
 
     static void Info(const char* file, int line, const char* fmt, ...) {
 #ifdef RDMA_ENABLE_LOGGING
-        if (level_ <= LogLevel::INFO) {
+        if (level_ <= LogLevel::kInfo) {
             va_list args;
             va_start(args, fmt);
             Log("INFO", file, line, fmt, args);
@@ -50,7 +50,7 @@ public:
 
     static void Warn(const char* file, int line, const char* fmt, ...) {
 #ifdef RDMA_ENABLE_LOGGING
-        if (level_ <= LogLevel::WARN) {
+        if (level_ <= LogLevel::kWarn) {
             va_list args;
             va_start(args, fmt);
             Log("WARN", file, line, fmt, args);
@@ -85,7 +85,7 @@ private:
         fprintf(stderr, "\n");
     }
 
-    static inline LogLevel level_ = LogLevel::INFO;
+    static inline LogLevel level_ = LogLevel::kInfo;
 };
 
 }  // namespace rdma

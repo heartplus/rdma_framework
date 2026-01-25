@@ -116,14 +116,12 @@ bool KVServer::Initialize(uint16_t port) {
 void KVServer::Run() {
     std::cout << "KV server running..." << std::endl;
 
-    wc_buffer_.resize(64);
-
     while (g_running) {
         // Accept new connections (non-blocking)
         AcceptConnections();
 
-        // Poll for completions
-        PollCompletions();
+        // Use reactor to poll CQs (handles adaptive batching, backoff, etc.)
+        reactor_->Poll();
     }
 
     PrintStats();
@@ -385,17 +383,6 @@ void KVServer::SendErrorResponse(Connection* conn, uint64_t key, kv::Status stat
     conn->Send(response_buf.Slice(0, sizeof(kv::ResponseHeader)), wr_id);
 }
 
-void KVServer::PollCompletions() {
-    int n = send_cq_->Poll(wc_buffer_.data(), wc_buffer_.size());
-    for (int i = 0; i < n; ++i) {
-        dispatcher_.Dispatch(wc_buffer_[i]);
-    }
-
-    n = recv_cq_->Poll(wc_buffer_.data(), wc_buffer_.size());
-    for (int i = 0; i < n; ++i) {
-        dispatcher_.Dispatch(wc_buffer_[i]);
-    }
-}
 
 void KVServer::OnError(uint16_t conn_id, ibv_wc_status status) {
     std::cerr << "Error on connection " << conn_id << ": " << ibv_wc_status_str(status)

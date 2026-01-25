@@ -51,7 +51,6 @@ private:
     void ProcessPut(rdma::Connection* conn, const kv::RequestHeader* header, const void* request_data,
                     size_t request_len, ConnectionContext* ctx);
     void SendErrorResponse(rdma::Connection* conn, uint64_t key, kv::Status status);
-    void PollCompletions();
     void OnError(uint16_t conn_id, ibv_wc_status status);
     void PrintStats();
 
@@ -77,5 +76,4 @@ private:
     std::unordered_map<uint64_t, rdma::Buffer> posted_send_buffers_;
 
     uint16_t port_ = 0;
-    std::vector<ibv_wc> wc_buffer_;
 };
