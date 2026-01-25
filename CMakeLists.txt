@@ -79,11 +79,11 @@ if(RDMA_BUILD_EXAMPLES)
     add_executable(rdma_client examples/client.cpp)
     target_link_libraries(rdma_client rdma_framework)
 
-    add_executable(echo_server examples/echo_server.cpp)
-    target_link_libraries(echo_server rdma_framework)
+    add_executable(kv_server examples/kv_server.cpp)
+    target_link_libraries(kv_server rdma_framework)
 
-    add_executable(echo_client examples/echo_client.cpp)
-    target_link_libraries(echo_client rdma_framework)
+    add_executable(kv_client examples/kv_client.cpp)
+    target_link_libraries(kv_client rdma_framework)
 endif()
 
 # Tests
