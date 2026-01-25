@@ -16,6 +16,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(IBVerbs REQUIRED)
 find_package(RDMACM REQUIRED)
 find_package(Threads REQUIRED)
+find_package(gflags REQUIRED)
 
 # Optional NUMA support
 find_library(NUMA_LIBRARY numa)
@@ -79,11 +80,11 @@ if(RDMA_BUILD_EXAMPLES)
     add_executable(rdma_client examples/client.cpp)
     target_link_libraries(rdma_client rdma_framework)
 
-    add_executable(kv_server examples/kv_server.cpp)
-    target_link_libraries(kv_server rdma_framework)
+    add_executable(kv_server examples/kv_server.cpp examples/kv_server_main.cpp)
+    target_link_libraries(kv_server rdma_framework gflags)
 
-    add_executable(kv_client examples/kv_client.cpp)
-    target_link_libraries(kv_client rdma_framework)
+    add_executable(kv_client examples/kv_client.cpp examples/kv_client_main.cpp)
+    target_link_libraries(kv_client rdma_framework gflags)
 endif()
 
 # Tests
